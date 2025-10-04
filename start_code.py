@@ -8,9 +8,6 @@ from database_wrapper import Database
 db = Database(host="localhost", gebruiker="user", wachtwoord="password", database="attractiepark")
 
 # main
-
-# Haal de eigenschappen op van een personeelslid
-# altijd verbinding openen om query's uit te voeren
 db.connect()
 
 # pas deze query aan om het juiste personeelslid te selecteren
@@ -29,6 +26,7 @@ db.connect()
 
 leeftijd = int(personeelslid[0]['leeftijd'])
 
+#statement als de personeelslid leeftijd berekenen hoeveel fysieke belasting hij/zij moet dragen.
 if leeftijd <= 24:
     max_fysieke_belasting = 25
 elif leeftijd <= 50:
@@ -36,6 +34,8 @@ elif leeftijd <= 50:
 else:
     max_fysieke_belasting = 20
 
+# Controleert of het personeelslid een verlaagde fysieke belasting heeft
+# en stelt de maximale fysieke belasting in op die waarde
 if personeelslid[0]['verlaagde_fysieke_belasting']:
     max_fysieke_belasting = int(personeelslid[0]['verlaagde_fysieke_belasting'])
 
@@ -43,12 +43,19 @@ levels = ["Stagiair", "Junior", "Medior" ,"Senior"]
 
 bevoegdheid_level = None
 
+# Bepaalt het bevoegdheidsniveau van het personeelslid.
+# Het gekozen level wordt naar een index vertaald (bijvoorbeeld: 'Stagiair' = 0),
+# waarbij +1 wordt opgeteld zodat het niveau overeenkomt met het correcte bereik
 if personeelslid[0]['bevoegdheid'] in levels:
     bevoegdheid_level = levels.index(personeelslid[0]['bevoegdheid']) + 1
 
-# Then build SQL query using max_fysieke_belasting
+# Bouwt de basis SQL-query.
+# De query haalt onderhoudstaken op die passen bij het beroepstype van het personeelslid
+# en waarvan de fysieke belasting lager of gelijk is aan de maximaal toegestane belasting
 select_query = f"SELECT * FROM onderhoudstaak WHERE beroepstype = '{personeelslid[0]['beroepstype']}' AND fysieke_belasting <= '{max_fysieke_belasting}' AND ("
 
+# Vult de WHERE-gedeelte aan met de toegestane bevoegdheidsniveaus.
+# Bijvoorbeeld: als bevoegdheid 'Medior' is, worden ook 'Stagiair' en 'Junior' meegenomen
 for i in range(bevoegdheid_level):
     select_query += f"bevoegdheid = '{levels[i]}'"
     if i < bevoegdheid_level -1:
@@ -57,16 +64,15 @@ for i in range(bevoegdheid_level):
 select_query += ");"
 
 onderhoudstaken = db.execute_query(select_query)
-print(select_query)
+print(select_query) #print in terminal de query wat word ingevoegd
 
 # altijd verbinding sluiten met de database als je klaar bent
 db.close()
 
-# verzamel alle benodigde gegevens in een dictionary
+# Alle peprsoneelsgegevens in een json
 dagtakenlijst = {
-    # STAP 1: vul aan met andere benodigde eigenschappen
     "personeelsgegevens" : {
-        "naam": personeelslid[0]['naam'],# voorbeeld van hoe je bij een eigenschap komt
+        "naam": personeelslid[0]['naam'],
         "werktijd": personeelslid[0]['werktijd'],
         "beroepstype": personeelslid[0]['beroepstype'],
         "bevoegdheid": personeelslid[0]['bevoegdheid'],
